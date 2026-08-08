@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs';
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 
@@ -72,7 +72,7 @@ app.post('/api/images/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
-  const fileHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
+  const fileHash = createHash('md5').update(req.file.buffer).digest('hex');
   const ext = path.extname(req.file.originalname).toLowerCase() || '.png';
   const filename = `upload-${fileHash}${ext}`;
   const filePath = path.join(uploadsDir, filename);
