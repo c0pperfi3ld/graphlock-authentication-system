@@ -136,11 +136,12 @@ npm run dev
 To grant Admin permissions to an existing user:
 
 1. Register an account via the web UI.
-2. Run the inline node script from the `server/` folder:
+2. Open your terminal inside the `server/` directory.
+3. Run the helper script with your username:
 ```bash
-node -e "import mongoose from 'mongoose'; import 'dotenv/config'; await mongoose.connect(process.env.MONGODB_URI); await mongoose.connection.db.collection('users').updateOne({ username: 'YOUR_USERNAME' }, { \$set: { role: 'admin' } }); console.log('Promoted to Admin!'); process.exit();"
+node make-admin.js YOUR_USERNAME
 ```
-3. Re-login to access the **Admin** dashboard link in the navigation header.
+4. Re-login to access the **Admin** dashboard link in the navigation header.
 
 ---
 
