@@ -151,13 +151,6 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (user.imageId !== imageId) {
-      // Simulate failed login if wrong image is chosen to prevent enumeration
-      user.failedAttempts += 1;
-      await user.save();
-      return res.status(401).json({ error: 'Invalid credentials or wrong image selected' });
-    }
-
     // Check lockout
     if (user.isLocked && user.lockedUntil > new Date()) {
       const minutesRemaining = Math.ceil((user.lockedUntil - new Date()) / 60000);
@@ -173,8 +166,8 @@ export const login = async (req, res) => {
       user.failedAttempts = 0;
     }
 
-    // Tolerance on 0-100 scale: 4.0 is a 4% radius which is significantly more forgiving for normal users.
-    const tolerance = Math.max(user.toleranceRadius / 10, 4.0);
+    // Tolerance on 0-100 scale: 6.0 is a 6% radius which allows spatial password coordinates to match smoothly on any uploaded image
+    const tolerance = Math.max(user.toleranceRadius / 10, 6.0);
     const result = verifyClickPoints(clickPoints, user.clickPoints, tolerance);
 
     if (result.match) {
