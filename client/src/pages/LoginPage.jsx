@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [lockedUntil, setLockedUntil] = useState(null);
   const [captureKey, setCaptureKey] = useState(0);
-  const [manualSelect, setManualSelect] = useState(false);
 
   if (isAuthenticated) { navigate('/dashboard'); return null; }
 
@@ -28,16 +27,9 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get(`/auth/user-image/${username.trim()}`);
-      if (manualSelect || data.autoLoadImage === false) {
-        // Manual mode: user chooses or uploads image every time
-        setSelectedImage('');
-        setImageSrc('');
-      } else {
-        // Auto-load mode: preload assigned image
-        setSelectedImage(data.imageId);
-        setImageSrc(data.imageSrc);
-      }
+      await api.get(`/auth/user-image/${username.trim()}`);
+      setSelectedImage('');
+      setImageSrc('');
       setStep(2);
     } catch (err) {
       const res = err.response?.data;
@@ -119,25 +111,13 @@ export default function LoginPage() {
                     autoFocus
                   />
                 </div>
-                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                  <input
-                    type="checkbox"
-                    id="manualSelectCheck"
-                    checked={manualSelect}
-                    onChange={(e) => setManualSelect(e.target.checked)}
-                    style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--primary)' }}
-                  />
-                  <label htmlFor="manualSelectCheck" style={{ margin: 0, textTransform: 'none', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    Manually select / re-upload image for this login
-                  </label>
-                </div>
                 <button
                   className="btn btn-primary"
                   style={{ width: '100%' }}
                   onClick={handleContinueUsername}
                   disabled={isLocked || loading}
                 >
-                  {loading ? 'Fetching Account...' : 'Continue →'}
+                  {loading ? 'Validating Account...' : 'Continue →'}
                 </button>
               </div>
             )}

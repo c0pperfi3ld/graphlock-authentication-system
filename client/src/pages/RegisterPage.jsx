@@ -89,8 +89,6 @@ export default function RegisterPage() {
     setError('');
   };
 
-  const [autoLoadImage, setAutoLoadImage] = useState(true);
-
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
@@ -101,7 +99,6 @@ export default function RegisterPage() {
         textPassword: formData.textPassword,
         imageId: selectedImage,
         clickPoints,
-        autoLoadImage,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -183,18 +180,6 @@ export default function RegisterPage() {
                 placeholder="Min. 6 characters"
               />
               {fieldErrors.textPassword && <span className="input-error-msg">⚠ {fieldErrors.textPassword}</span>}
-            </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <input
-                type="checkbox"
-                id="autoLoadCheck"
-                checked={autoLoadImage}
-                onChange={(e) => setAutoLoadImage(e.target.checked)}
-                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--primary)' }}
-              />
-              <label htmlFor="autoLoadCheck" style={{ margin: 0, textTransform: 'none', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                Automatically load my password image when logging in
-              </label>
             </div>
             <button className="btn btn-primary" style={{ width: '100%' }} onClick={nextStep} disabled={loading}>
               {loading ? 'Checking Availability...' : 'Next → Choose Image'}
