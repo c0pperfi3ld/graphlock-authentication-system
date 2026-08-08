@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 
