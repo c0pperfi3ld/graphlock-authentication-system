@@ -109,6 +109,37 @@ export const register = async (req, res) => {
   }
 };
 
+// GET /api/auth/user-image/:username
+export const getUserImage = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username: username.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.isLocked && user.lockedUntil > new Date()) {
+      const minutesRemaining = Math.ceil((user.lockedUntil - new Date()) / 60000);
+      return res.status(423).json({
+        error: 'Account is locked',
+        lockedUntil: user.lockedUntil,
+        minutesRemaining,
+      });
+    }
+
+    const isUpload = user.imageId.startsWith('upload-');
+    const imageSrc = isUpload ? `/uploads/${user.imageId}` : `/default-images/${user.imageId}`;
+
+    res.json({
+      imageId: user.imageId,
+      imageSrc,
+    });
+  } catch (err) {
+    console.error('Get user image error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // POST /api/auth/login
 export const login = async (req, res) => {
   try {

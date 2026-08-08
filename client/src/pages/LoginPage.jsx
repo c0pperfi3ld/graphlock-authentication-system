@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import api from '../utils/auth.js';
 import ImageSelector from '../components/ImageSelector.jsx';
 import ClickPointCapture from '../components/ClickPointCapture.jsx';
 
@@ -21,11 +22,33 @@ export default function LoginPage() {
 
   if (isAuthenticated) { navigate('/dashboard'); return null; }
 
+  const handleContinueUsername = async () => {
+    if (!username.trim()) return setError('Username is required');
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await api.get(`/auth/user-image/${username.trim()}`);
+      setSelectedImage(data.imageId);
+      setImageSrc(data.imageSrc);
+      setStep(2);
+    } catch (err) {
+      const res = err.response?.data;
+      if (res?.lockedUntil) {
+        setLockedUntil(new Date(res.lockedUntil));
+        setError(`Account locked. Try again in ${res.minutesRemaining || '?'} minutes.`);
+      } else {
+        setError(res?.error || 'User not found. Check your username.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGraphicalLogin = async (points) => {
     setLoading(true);
     setError('');
     try {
-      const data = await login({ username, clickPoints: points, imageId: selectedImage });
+      const data = await login({ username: username.trim(), clickPoints: points, imageId: selectedImage });
       if (data.isDecoy) {
         navigate('/dashboard');
       } else {
@@ -49,7 +72,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await loginWithText({ username, textPassword });
+      await loginWithText({ username: username.trim(), textPassword });
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
@@ -79,14 +102,22 @@ export default function LoginPage() {
               <div className="slide-up">
                 <div className="form-group">
                   <label>Username</label>
-                  <input className="input-field" value={username}
+                  <input
+                    className="input-field"
+                    value={username}
                     onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                    placeholder="Enter your username" autoFocus />
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleContinueUsername(); }}
+                    placeholder="Enter your username"
+                    autoFocus
+                  />
                 </div>
-                <button className="btn btn-primary" style={{ width: '100%' }}
-                  onClick={() => { if (!username) return setError('Username is required'); setStep(2); }}
-                  disabled={isLocked}>
-                  Continue →
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={handleContinueUsername}
+                  disabled={isLocked || loading}
+                >
+                  {loading ? 'Fetching Account...' : 'Continue →'}
                 </button>
               </div>
             )}
@@ -94,27 +125,32 @@ export default function LoginPage() {
             {step === 2 && (
               <div className="slide-up">
                 <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: '0.9rem' }}>
-                  Select your password image, then click your secret points:
+                  Click your 5 secret spots on your password image:
                 </p>
-                {!selectedImage ? (
-                  <ImageSelector onImageSelect={(id, src) => { setSelectedImage(id); setImageSrc(src); }} selectedImage={selectedImage} />
-                ) : (
-                  <>
-                    <ClickPointCapture key={captureKey} imageSrc={imageSrc} onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
-                      maxPoints={5} mode="login" />
-                    {loading && <div className="spinner" />}
-                  </>
-                )}
+                <ClickPointCapture
+                  key={captureKey}
+                  imageSrc={imageSrc}
+                  onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
+                  maxPoints={5}
+                  mode="login"
+                />
+                {loading && <div className="spinner" />}
                 <div className="mt-2" style={{ display: 'flex', gap: 12 }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => { setStep(1); setSelectedImage(''); setImageSrc(''); }}>
                     ← Back
                   </button>
-                  {selectedImage && (
-                    <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedImage(''); setImageSrc(''); }}>
-                      Change Image
-                    </button>
-                  )}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setSelectedImage(''); }}
+                  >
+                    Change / Select Image
+                  </button>
                 </div>
+                {!selectedImage && (
+                  <div className="mt-3">
+                    <ImageSelector onImageSelect={(id, src) => { setSelectedImage(id); setImageSrc(src); }} selectedImage={selectedImage} />
+                  </div>
+                )}
               </div>
             )}
           </>
