@@ -58,7 +58,7 @@ export const checkAvailability = async (req, res) => {
 // POST /api/auth/register
 export const register = async (req, res) => {
   try {
-    const { username, email, textPassword, imageId, clickPoints } = req.body;
+    const { username, email, textPassword, imageId, clickPoints, autoLoadImage } = req.body;
 
     if (!username || !email || !textPassword || !imageId || !clickPoints) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -83,6 +83,7 @@ export const register = async (req, res) => {
       imageId,
       clickPoints,
       numClickPoints: clickPoints.length,
+      autoLoadImage: autoLoadImage !== undefined ? Boolean(autoLoadImage) : true,
     });
 
     const token = generateToken(user._id);
@@ -100,6 +101,7 @@ export const register = async (req, res) => {
         email: user.email,
         role: user.role,
         imageId: user.imageId,
+        autoLoadImage: user.autoLoadImage,
       },
       passwordStrength: strength,
     });
@@ -127,10 +129,17 @@ export const getUserImage = async (req, res) => {
       });
     }
 
+    if (user.autoLoadImage === false) {
+      return res.json({
+        autoLoadImage: false,
+      });
+    }
+
     const isUpload = user.imageId.startsWith('upload-');
     const imageSrc = isUpload ? `/uploads/${user.imageId}` : `/default-images/${user.imageId}`;
 
     res.json({
+      autoLoadImage: true,
       imageId: user.imageId,
       imageSrc,
     });

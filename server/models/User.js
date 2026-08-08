@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    autoLoadImage: {
+      type: Boolean,
+      default: true,
+    },
     passwordCreatedAt: {
       type: Date,
       default: Date.now,

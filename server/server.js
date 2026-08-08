@@ -28,22 +28,14 @@ app.use(cookieParser());
 app.use('/default-images', express.static(path.join(__dirname, '..', 'client', 'public', 'default-images')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'client', 'public', 'uploads')));
 
-// Multer config for image uploads
+// Multer config for image uploads (uses memory storage for content hashing)
 const uploadsDir = path.join(__dirname, '..', 'client', 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const uniqueName = `upload-${Date.now()}-${Math.round(Math.random() * 1e6)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp/;
@@ -74,12 +66,18 @@ app.get('/api/images/defaults', (req, res) => {
   }
 });
 
-// POST /api/images/upload — upload custom image
+// POST /api/images/upload — upload custom image with deterministic MD5 content hashing
 app.post('/api/images/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
-  res.json({ imageId: req.file.filename, path: `/uploads/${req.file.filename}` });
+  const fileHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
+  const ext = path.extname(req.file.originalname).toLowerCase() || '.png';
+  const filename = `upload-${fileHash}${ext}`;
+  const filePath = path.join(uploadsDir, filename);
+
+  fs.writeFileSync(filePath, req.file.buffer);
+  res.json({ imageId: filename, path: `/uploads/${filename}` });
 });
 
 // Global error handler
