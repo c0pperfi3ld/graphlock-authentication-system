@@ -129,17 +129,21 @@ export const getUserImage = async (req, res) => {
       });
     }
 
-    if (user.autoLoadImage === false) {
+    const isUpload = user.imageId.startsWith('upload-');
+
+    // Custom uploaded images are never auto-loaded/stored publicly — user must upload on demand
+    if (isUpload || user.autoLoadImage === false) {
       return res.json({
         autoLoadImage: false,
+        isCustomUpload: isUpload,
       });
     }
 
-    const isUpload = user.imageId.startsWith('upload-');
-    const imageSrc = isUpload ? `/uploads/${user.imageId}` : `/default-images/${user.imageId}`;
+    const imageSrc = `/default-images/${user.imageId}`;
 
     res.json({
       autoLoadImage: true,
+      isCustomUpload: false,
       imageId: user.imageId,
       imageSrc,
     });

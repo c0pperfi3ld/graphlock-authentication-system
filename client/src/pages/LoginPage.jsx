@@ -144,33 +144,42 @@ export default function LoginPage() {
 
             {step === 2 && (
               <div className="slide-up">
-                <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: '0.9rem' }}>
-                  Click your 5 secret spots on your password image:
-                </p>
-                <ClickPointCapture
-                  key={captureKey}
-                  imageSrc={imageSrc}
-                  onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
-                  maxPoints={5}
-                  mode="login"
-                />
-                {loading && <div className="spinner" />}
+                {!selectedImage ? (
+                  <>
+                    <div className="alert alert-warning mb-3">
+                      📷 <strong>Upload / Select Image Required:</strong> Upload or select your password image file below to unlock your click-point grid.
+                    </div>
+                    <ImageSelector onImageSelect={(id, src) => { setSelectedImage(id); setImageSrc(src); }} selectedImage={selectedImage} />
+                  </>
+                ) : (
+                  <>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: '0.9rem' }}>
+                      Click your 5 secret spots on your password image:
+                    </p>
+                    <ClickPointCapture
+                      key={captureKey}
+                      imageSrc={imageSrc}
+                      onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
+                      maxPoints={5}
+                      mode="login"
+                    />
+                    {loading && <div className="spinner" />}
+                  </>
+                )}
+
                 <div className="mt-2" style={{ display: 'flex', gap: 12 }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => { setStep(1); setSelectedImage(''); setImageSrc(''); }}>
                     ← Back
                   </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => { setSelectedImage(''); }}
-                  >
-                    Change / Select Image
-                  </button>
+                  {selectedImage && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => { setSelectedImage(''); setImageSrc(''); }}
+                    >
+                      🔄 Choose / Re-upload Image
+                    </button>
+                  )}
                 </div>
-                {!selectedImage && (
-                  <div className="mt-3">
-                    <ImageSelector onImageSelect={(id, src) => { setSelectedImage(id); setImageSrc(src); }} selectedImage={selectedImage} />
-                  </div>
-                )}
               </div>
             )}
           </>
