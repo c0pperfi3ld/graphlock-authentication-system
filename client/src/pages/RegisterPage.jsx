@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import api from '../utils/auth.js';
 import ImageSelector from '../components/ImageSelector.jsx';
 import ClickPointCapture from '../components/ClickPointCapture.jsx';
 import ClickPointReplay from '../components/ClickPointReplay.jsx';
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ username: '', email: '', textPassword: '' });
 
   const [formData, setFormData] = useState({ username: '', email: '', textPassword: '' });
   const [selectedImage, setSelectedImage] = useState('');
@@ -19,19 +21,58 @@ export default function RegisterPage() {
   const [clickPoints, setClickPoints] = useState(null);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
     setError('');
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step === 1) {
-      if (!formData.username || !formData.email || !formData.textPassword) {
-        return setError('All fields are required');
+      const errors = {};
+      const usernameVal = formData.username.trim();
+      const emailVal = formData.email.trim();
+
+      if (!usernameVal) {
+        errors.username = 'Username is required';
       }
-      if (formData.textPassword.length < 6) {
-        return setError('Text password must be at least 6 characters');
+      if (!emailVal) {
+        errors.email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(emailVal)) {
+        errors.email = 'Invalid email address format';
       }
+      if (!formData.textPassword) {
+        errors.textPassword = 'Text password is required';
+      } else if (formData.textPassword.length < 6) {
+        errors.textPassword = 'Text password must be at least 6 characters';
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      setFieldErrors({ username: '', email: '', textPassword: '' });
+
+      try {
+        await api.post('/auth/check-availability', {
+          username: usernameVal,
+          email: emailVal,
+        });
+      } catch (err) {
+        setLoading(false);
+        if (err.response?.status === 409 && err.response?.data?.errors) {
+          setFieldErrors(err.response.data.errors);
+          return; // Stay on Step 1 so the user sees inline error in email/username field
+        }
+        setError(err.response?.data?.error || 'Validation failed');
+        return;
+      }
+      setLoading(false);
     }
+
     if (step === 2 && !selectedImage) {
       return setError('Please select an image');
     }
@@ -53,13 +94,27 @@ export default function RegisterPage() {
     setError('');
     try {
       await register({
-        ...formData,
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        textPassword: formData.textPassword,
         imageId: selectedImage,
         clickPoints,
       });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      if (err.response?.status === 409) {
+        const msg = err.response?.data?.error || '';
+        setStep(1); // Redirect back to step 1
+        if (msg.toLowerCase().includes('email')) {
+          setFieldErrors({ email: 'Email address is already registered' });
+        } else if (msg.toLowerCase().includes('username')) {
+          setFieldErrors({ username: 'Username is already taken' });
+        } else {
+          setError(msg);
+        }
+      } else {
+        setError(err.response?.data?.error || 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,21 +147,42 @@ export default function RegisterPage() {
           <div className="slide-up">
             <div className="form-group">
               <label>Username</label>
-              <input className="input-field" name="username" value={formData.username}
-                onChange={handleInputChange} placeholder="Choose a username" autoFocus />
+              <input
+                className={`input-field ${fieldErrors.username ? 'input-error' : ''}`}
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                placeholder="Choose a username"
+                autoFocus
+              />
+              {fieldErrors.username && <span className="input-error-msg">⚠ {fieldErrors.username}</span>}
             </div>
             <div className="form-group">
               <label>Email</label>
-              <input className="input-field" name="email" type="email" value={formData.email}
-                onChange={handleInputChange} placeholder="your@email.com" />
+              <input
+                className={`input-field ${fieldErrors.email ? 'input-error' : ''}`}
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="your@email.com"
+              />
+              {fieldErrors.email && <span className="input-error-msg">⚠ {fieldErrors.email}</span>}
             </div>
             <div className="form-group">
               <label>Text Password (Fallback)</label>
-              <input className="input-field" name="textPassword" type="password" value={formData.textPassword}
-                onChange={handleInputChange} placeholder="Min. 6 characters" />
+              <input
+                className={`input-field ${fieldErrors.textPassword ? 'input-error' : ''}`}
+                name="textPassword"
+                type="password"
+                value={formData.textPassword}
+                onChange={handleInputChange}
+                placeholder="Min. 6 characters"
+              />
+              {fieldErrors.textPassword && <span className="input-error-msg">⚠ {fieldErrors.textPassword}</span>}
             </div>
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={nextStep}>
-              Next → Choose Image
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={nextStep} disabled={loading}>
+              {loading ? 'Checking Availability...' : 'Next → Choose Image'}
             </button>
           </div>
         )}

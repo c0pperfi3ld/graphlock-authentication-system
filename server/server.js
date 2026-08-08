@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import vaultRoutes from './routes/vaultRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,7 @@ const upload = multer({
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/vault', vaultRoutes);
 
 // GET /api/images/defaults — list default images
 app.get('/api/images/defaults', (req, res) => {

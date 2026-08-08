@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     },
     toleranceRadius: {
       type: Number,
-      default: 18,
+      default: 40,
     },
     precisionHistory: {
       type: [Number],
@@ -110,12 +110,12 @@ userSchema.methods.updateAdaptiveTolerance = function (precisionScore) {
     this.precisionHistory = this.precisionHistory.slice(-10);
   }
 
-  // Recalculate tolerance as average precision * 1.5, clamped between 10 and 30
+  // Recalculate tolerance as average precision * 1.5, clamped between 25 and 60
   const avg =
     this.precisionHistory.reduce((sum, val) => sum + val, 0) /
     this.precisionHistory.length;
   let newTolerance = avg * 1.5;
-  newTolerance = Math.max(10, Math.min(30, newTolerance));
+  newTolerance = Math.max(25, Math.min(60, newTolerance));
   this.toleranceRadius = newTolerance;
 };
 

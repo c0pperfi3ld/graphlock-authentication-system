@@ -24,6 +24,37 @@ const createSession = async (userId, token, req) => {
   });
 };
 
+// POST /api/auth/check-availability
+export const checkAvailability = async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    const errors = {};
+
+    if (username) {
+      const existingUser = await User.findOne({ username: username.toLowerCase() });
+      if (existingUser) {
+        errors.username = 'Username is already taken';
+      }
+    }
+
+    if (email) {
+      const existingEmail = await User.findOne({ email: email.toLowerCase() });
+      if (existingEmail) {
+        errors.email = 'Email address is already registered';
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(409).json({ errors });
+    }
+
+    return res.json({ available: true });
+  } catch (err) {
+    console.error('Check availability error:', err);
+    res.status(500).json({ error: 'Server error during validation' });
+  }
+};
+
 // POST /api/auth/register
 export const register = async (req, res) => {
   try {
@@ -92,6 +123,13 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.imageId !== imageId) {
+      // Simulate failed login if wrong image is chosen to prevent enumeration
+      user.failedAttempts += 1;
+      await user.save();
+      return res.status(401).json({ error: 'Invalid credentials or wrong image selected' });
+    }
+
     // Check lockout
     if (user.isLocked && user.lockedUntil > new Date()) {
       const minutesRemaining = Math.ceil((user.lockedUntil - new Date()) / 60000);
@@ -107,8 +145,8 @@ export const login = async (req, res) => {
       user.failedAttempts = 0;
     }
 
-    // Tolerance on 0-100 scale: toleranceRadius is in px for ~1000px image, so divide by 10
-    const tolerance = user.toleranceRadius / 10;
+    // Tolerance on 0-100 scale: 4.0 is a 4% radius which is significantly more forgiving for normal users.
+    const tolerance = Math.max(user.toleranceRadius / 10, 4.0);
     const result = verifyClickPoints(clickPoints, user.clickPoints, tolerance);
 
     if (result.match) {

@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [lockedUntil, setLockedUntil] = useState(null);
+  const [captureKey, setCaptureKey] = useState(0);
 
   if (isAuthenticated) { navigate('/dashboard'); return null; }
 
@@ -38,6 +39,7 @@ export default function LoginPage() {
       } else {
         setAttemptsRemaining(res?.attemptsRemaining ?? null);
         setError(res?.error || 'Login failed. Check your click points.');
+        setCaptureKey(prev => prev + 1); // Reset capture points on failure
       }
     } finally { setLoading(false); }
   };
@@ -98,7 +100,7 @@ export default function LoginPage() {
                   <ImageSelector onImageSelect={(id, src) => { setSelectedImage(id); setImageSrc(src); }} selectedImage={selectedImage} />
                 ) : (
                   <>
-                    <ClickPointCapture imageSrc={imageSrc} onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
+                    <ClickPointCapture key={captureKey} imageSrc={imageSrc} onPointsSet={(pts) => { if (pts) handleGraphicalLogin(pts); }}
                       maxPoints={5} mode="login" />
                     {loading && <div className="spinner" />}
                   </>
